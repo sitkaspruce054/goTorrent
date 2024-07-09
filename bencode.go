@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"sort"
 	"strconv"
 )
 
@@ -144,4 +145,47 @@ func readAtLeast(reader *bufio.Reader, buf []byte, min int) (n int, err error) {
 		err = io.ErrUnexpectedEOF
 	}
 	return
+}
+
+func bEncodeString(w io.Writer, s string) {
+	encodedString := strconv.Itoa(len(s)) + ":" + s
+
+	w.Write([]byte(encodedString))
+}
+
+func bEncodeInt(w io.Writer, i int) {
+	encodedInt := "i" + strconv.Itoa(i) + "e"
+
+	w.Write([]byte(encodedInt))
+}
+
+func bEncodeDict(w io.Writer, dict map[string]interface{}) {
+
+	var ks []string
+	for k, _ := range dict {
+		ks = append(ks, k)
+	}
+
+	sort.Strings(ks)
+	w.Write([]byte("d"))
+	for _, sortedKey := range ks {
+		bEncodeString(w, sortedKey)
+		bEncode(w, dict[sortedKey])
+	}
+	w.Write([]byte("e"))
+}
+
+func bEncode(w io.Writer, obj interface{}) {
+
+	switch obj.(type) {
+
+	case string:
+		bEncodeString(w, obj.(string))
+
+	case int:
+		bEncodeInt(w, obj.(int))
+	case map[string]interface{}:
+		bEncodeDict(w, obj.(map[string]interface{}))
+	}
+
 }
